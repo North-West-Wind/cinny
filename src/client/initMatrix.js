@@ -10,6 +10,7 @@ import RoomsInput from './state/RoomsInput';
 import Notifications from './state/Notifications';
 import { cryptoCallbacks } from './state/secretStorageKeys';
 import navigation from './state/navigation';
+import { SlidingSync } from 'matrix-js-sdk/lib/sliding-sync';
 
 global.Olm = Olm;
 
@@ -57,6 +58,22 @@ class InitMatrix extends EventEmitter {
     });
 
     await this.matrixClient.initCrypto();
+
+    // Check if sliding sync is supported
+    let slidingOptions = {}
+    let slidingUrl = "";
+    try {
+      const res = await fetch(this.matrixClient.baseUrl + "/.well-known/matrix/client");
+      const json = await res.json();
+      if (json["org.matrix.msc3575.proxy"]?.url) {
+        slidingOptions = { slidingSync: new SlidingSync(json["org.matrix.msc3575.proxy"]?.url, new Map(), {}, this.matrixClient) };
+        slidingOptions.slidingSync
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+
 
     await this.matrixClient.startClient({
       lazyLoadMembers: true,

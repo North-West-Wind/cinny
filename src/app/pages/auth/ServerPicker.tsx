@@ -15,12 +15,14 @@ import {
   Menu,
   MenuItem,
   PopOut,
+  RectCords,
   Text,
   config,
 } from 'folds';
 import FocusTrap from 'focus-trap-react';
 
 import { useDebounce } from '../../hooks/useDebounce';
+import { stopPropagation } from '../../utils/keyboard';
 
 export function ServerPicker({
   server,
@@ -33,7 +35,7 @@ export function ServerPicker({
   allowCustomServer?: boolean;
   onServerChange: (server: string) => void;
 }) {
-  const [serverMenu, setServerMenu] = useState(false);
+  const [serverMenuAnchor, setServerMenuAnchor] = useState<RectCords>();
   const serverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export function ServerPicker({
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (evt) => {
     if (evt.key === 'ArrowDown') {
       evt.preventDefault();
-      setServerMenu(true);
+      setServerMenuAnchor(undefined);
     }
     if (evt.key === 'Enter') {
       evt.preventDefault();
@@ -67,7 +69,12 @@ export function ServerPicker({
     if (selectedServer) {
       onServerChange(selectedServer);
     }
-    setServerMenu(false);
+    setServerMenuAnchor(undefined);
+  };
+
+  const handleOpenServerMenu: MouseEventHandler<HTMLElement> = (evt) => {
+    const target = evt.currentTarget.parentElement ?? evt.currentTarget;
+    setServerMenuAnchor(target.getBoundingClientRect());
   };
 
   return (
@@ -81,11 +88,11 @@ export function ServerPicker({
       onKeyDown={handleKeyDown}
       size="500"
       readOnly={!allowCustomServer}
-      onClick={allowCustomServer ? undefined : () => setServerMenu(true)}
+      onClick={allowCustomServer ? undefined : handleOpenServerMenu}
       after={
         serverList.length === 0 || (serverList.length === 1 && !allowCustomServer) ? undefined : (
           <PopOut
-            open={serverMenu}
+            anchor={serverMenuAnchor}
             position="Bottom"
             align="End"
             offset={4}
@@ -93,10 +100,11 @@ export function ServerPicker({
               <FocusTrap
                 focusTrapOptions={{
                   initialFocus: false,
-                  onDeactivate: () => setServerMenu(false),
+                  onDeactivate: () => setServerMenuAnchor(undefined),
                   clickOutsideDeactivates: true,
                   isKeyForward: (evt: KeyboardEvent) => evt.key === 'ArrowDown',
                   isKeyBackward: (evt: KeyboardEvent) => evt.key === 'ArrowUp',
+                  escapeDeactivates: stopPropagation,
                 }}
               >
                 <Menu>
@@ -120,18 +128,15 @@ export function ServerPicker({
               </FocusTrap>
             }
           >
-            {(anchorRef) => (
-              <IconButton
-                ref={anchorRef}
-                onClick={() => setServerMenu(true)}
-                variant={allowCustomServer ? 'Background' : 'Surface'}
-                size="300"
-                aria-pressed={serverMenu}
-                radii="300"
-              >
-                <Icon src={Icons.ChevronBottom} />
-              </IconButton>
-            )}
+            <IconButton
+              onClick={handleOpenServerMenu}
+              variant={allowCustomServer ? 'Background' : 'Surface'}
+              size="300"
+              aria-pressed={!!serverMenuAnchor}
+              radii="300"
+            >
+              <Icon src={Icons.ChevronBottom} />
+            </IconButton>
           </PopOut>
         )
       }

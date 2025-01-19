@@ -1,11 +1,9 @@
 import React, { useCallback, useEffect } from 'react';
 import { Box, Header, Scroll, Spinner, Text, color } from 'folds';
 import {
-  LoaderFunction,
   Outlet,
   generatePath,
   matchPath,
-  redirect,
   useLocation,
   useNavigate,
   useParams,
@@ -15,14 +13,13 @@ import classNames from 'classnames';
 import { AuthFooter } from './AuthFooter';
 import * as css from './styles.css';
 import * as PatternsCss from '../../styles/Patterns.css';
-import { isAuthenticated } from '../../../client/state/auth';
 import {
   clientAllowedServer,
   clientDefaultServer,
   useClientConfig,
 } from '../../hooks/useClientConfig';
 import { AsyncStatus, useAsyncCallback } from '../../hooks/useAsyncCallback';
-import { LOGIN_PATH, REGISTER_PATH } from '../paths';
+import { LOGIN_PATH, REGISTER_PATH, RESET_PASSWORD_PATH } from '../paths';
 import CinnySVG from '../../../../public/res/svg/cinny.svg';
 import { ServerPicker } from './ServerPicker';
 import { AutoDiscoveryAction, autoDiscovery } from '../../cs-api';
@@ -32,18 +29,14 @@ import { AutoDiscoveryInfoProvider } from '../../hooks/useAutoDiscoveryInfo';
 import { AuthFlowsLoader } from '../../components/AuthFlowsLoader';
 import { AuthFlowsProvider } from '../../hooks/useAuthFlows';
 import { AuthServerProvider } from '../../hooks/useAuthServer';
-
-export const authLayoutLoader: LoaderFunction = () => {
-  if (isAuthenticated()) {
-    return redirect('/');
-  }
-
-  return null;
-};
+import { tryDecodeURIComponent } from '../../utils/dom';
 
 const currentAuthPath = (pathname: string): string => {
   if (matchPath(LOGIN_PATH, pathname)) {
     return LOGIN_PATH;
+  }
+  if (matchPath(RESET_PASSWORD_PATH, pathname)) {
+    return RESET_PASSWORD_PATH;
   }
   if (matchPath(REGISTER_PATH, pathname)) {
     return REGISTER_PATH;
@@ -80,7 +73,7 @@ export function AuthLayout() {
   const clientConfig = useClientConfig();
 
   const defaultServer = clientDefaultServer(clientConfig);
-  let server: string = urlEncodedServer ? decodeURIComponent(urlEncodedServer) : defaultServer;
+  let server: string = urlEncodedServer ? tryDecodeURIComponent(urlEncodedServer) : defaultServer;
 
   if (!clientAllowedServer(clientConfig, server)) {
     server = defaultServer;
@@ -102,7 +95,7 @@ export function AuthLayout() {
 
   // if server is mismatches with path server, update path
   useEffect(() => {
-    if (!urlEncodedServer || decodeURIComponent(urlEncodedServer) !== server) {
+    if (!urlEncodedServer || tryDecodeURIComponent(urlEncodedServer) !== server) {
       navigate(
         generatePath(currentAuthPath(location.pathname), {
           server: encodeURIComponent(server),
@@ -175,6 +168,7 @@ export function AuthLayout() {
               <AuthServerProvider value={discoveryState.data.serverName}>
                 <AutoDiscoveryInfoProvider value={autoDiscoveryInfo}>
                   <SpecVersionsLoader
+                    baseUrl={autoDiscoveryInfo['m.homeserver'].base_url}
                     fallback={() => (
                       <AuthLayoutLoading
                         message={`Connecting to ${autoDiscoveryInfo['m.homeserver'].base_url}`}

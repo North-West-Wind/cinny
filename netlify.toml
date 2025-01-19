@@ -7,11 +7,17 @@
   from = "/manifest.json"
   to = "/manifest.json"
   status = 200
-  
+
 [[redirects]]
-  from = "/olm.wasm"
+  from = "/sw.js"
+  to = "/sw.js"
+  status = 200
+
+[[redirects]]
+  from = "*/olm.wasm"
   to = "/olm.wasm"
   status = 200
+  force = true
   
 [[redirects]]
   from = "/pdf.worker.min.js"
@@ -32,3 +38,4 @@
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true

@@ -2,8 +2,6 @@ import React from 'react';
 import classNames from 'classnames';
 import {
   Avatar,
-  AvatarFallback,
-  AvatarImage,
   Box,
   Header,
   Icon,
@@ -21,8 +19,9 @@ import { getMemberDisplayName } from '../../utils/room';
 import { getMxIdLocalPart } from '../../utils/matrix';
 import * as css from './EventReaders.css';
 import { useMatrixClient } from '../../hooks/useMatrixClient';
-import colorMXID from '../../../util/colorMXID';
 import { openProfileViewer } from '../../../client/action/navigation';
+import { UserAvatar } from '../user-avatar';
+import { useMediaAuthentication } from '../../hooks/useMediaAuthentication';
 
 export type EventReadersProps = {
   room: Room;
@@ -32,6 +31,7 @@ export type EventReadersProps = {
 export const EventReaders = as<'div', EventReadersProps>(
   ({ className, room, eventId, requestClose, ...props }, ref) => {
     const mx = useMatrixClient();
+    const useAuthentication = useMediaAuthentication();
     const latestEventReaders = useRoomEventReaders(room, eventId);
 
     const getName = (userId: string) =>
@@ -57,9 +57,10 @@ export const EventReaders = as<'div', EventReadersProps>(
             <Box className={css.Content} direction="Column">
               {latestEventReaders.map((readerId) => {
                 const name = getName(readerId);
-                const avatarUrl = room
+                const avatarMxcUrl = room
                   .getMember(readerId)
-                  ?.getAvatarUrl(mx.baseUrl, 100, 100, 'crop', undefined, false);
+                  ?.getMxcAvatarUrl();
+                const avatarUrl = avatarMxcUrl ? mx.mxcUrlToHttp(avatarMxcUrl, 100, 100, 'crop', undefined, false, useAuthentication) : undefined;
 
                 return (
                   <MenuItem
@@ -72,18 +73,12 @@ export const EventReaders = as<'div', EventReadersProps>(
                     }}
                     before={
                       <Avatar size="200">
-                        {avatarUrl ? (
-                          <AvatarImage src={avatarUrl} />
-                        ) : (
-                          <AvatarFallback
-                            style={{
-                              background: colorMXID(readerId),
-                              color: 'white',
-                            }}
-                          >
-                            <Text size="H6">{name[0]}</Text>
-                          </AvatarFallback>
-                        )}
+                        <UserAvatar
+                          userId={readerId}
+                          src={avatarUrl ?? undefined}
+                          alt={name}
+                          renderFallback={() => <Icon size="50" src={Icons.User} filled />}
+                        />
                       </Avatar>
                     }
                   >

@@ -18,6 +18,8 @@ import { useRelevantImagePacks } from '../../../hooks/useImagePacks';
 import { IEmoji, emojis } from '../../../plugins/emoji';
 import { ExtendedPackImage, PackUsage } from '../../../plugins/custom-emoji';
 import { useKeyDown } from '../../../hooks/useKeyDown';
+import { mxcUrlToHttp } from '../../../utils/matrix';
+import { useMediaAuthentication } from '../../../hooks/useMediaAuthentication';
 
 type EmoticonCompleteHandler = (key: string, shortcode: string) => void;
 
@@ -48,20 +50,23 @@ export function EmoticonAutocomplete({
   requestClose,
 }: EmoticonAutocompleteProps) {
   const mx = useMatrixClient();
+  const useAuthentication = useMediaAuthentication();
 
   const imagePacks = useRelevantImagePacks(mx, PackUsage.Emoticon, imagePackRooms);
   const recentEmoji = useRecentEmoji(mx, 20);
 
   const searchList = useMemo(() => {
     const list: Array<EmoticonSearchItem> = [];
-    return list.concat(
-      imagePacks.flatMap((pack) => pack.getImagesFor(PackUsage.Emoticon)),
-      emojis
-    );
+    return list
+      .concat(
+        imagePacks.flatMap((pack) => pack.getImagesFor(PackUsage.Emoticon)),
+        emojis
+      )
   }, [imagePacks]);
 
   const [result, search, resetSearch] = useAsyncSearch(searchList, getEmoticonStr, SEARCH_OPTIONS);
-  const autoCompleteEmoticon = result ? result.items : recentEmoji;
+  const autoCompleteEmoticon = (result ? result.items : recentEmoji)
+      .sort((a, b) => a.shortcode.localeCompare(b.shortcode));
 
   useEffect(() => {
     if (query.text) search(query.text);
@@ -103,7 +108,7 @@ export function EmoticonAutocomplete({
                 <Box
                   shrink="No"
                   as="img"
-                  src={mx.mxcUrlToHttp(key) || key}
+                  src={mxcUrlToHttp(mx, key, useAuthentication) || key}
                   alt={emoticon.shortcode}
                   style={{ width: toRem(24), height: toRem(24), objectFit: 'contain' }}
                 />

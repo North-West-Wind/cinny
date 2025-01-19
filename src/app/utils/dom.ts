@@ -190,3 +190,17 @@ export const copyToClipboard = (text: string) => {
     copyInput.remove();
   }
 };
+
+export const setFavicon = (url: string): void => {
+  const favicon = document.querySelector('#favicon');
+  if (!favicon) return;
+  favicon.setAttribute('href', url);
+};
+
+export const tryDecodeURIComponent = (encodedURIComponent: string): string => {
+  try {
+    return decodeURIComponent(encodedURIComponent);
+  } catch {
+    return encodedURIComponent;
+  }
+};

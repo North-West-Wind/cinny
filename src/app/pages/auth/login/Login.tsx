@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Text, color } from 'folds';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuthFlows } from '../../../hooks/useAuthFlows';
@@ -23,18 +23,22 @@ const getLoginTokenSearchParam = () => {
   return loginToken ?? undefined;
 };
 
-const getLoginSearchParams = (searchParams: URLSearchParams): LoginPathSearchParams => ({
-  username: searchParams.get('username') ?? undefined,
-  email: searchParams.get('email') ?? undefined,
-  loginToken: searchParams.get('loginToken') ?? undefined,
-});
+const useLoginSearchParams = (searchParams: URLSearchParams): LoginPathSearchParams =>
+  useMemo(
+    () => ({
+      username: searchParams.get('username') ?? undefined,
+      email: searchParams.get('email') ?? undefined,
+      loginToken: searchParams.get('loginToken') ?? undefined,
+    }),
+    [searchParams]
+  );
 
 export function Login() {
   const server = useAuthServer();
   const { hashRouter } = useClientConfig();
   const { loginFlows } = useAuthFlows();
   const [searchParams] = useSearchParams();
-  const loginSearchParams = getLoginSearchParams(searchParams);
+  const loginSearchParams = useLoginSearchParams(searchParams);
   const ssoRedirectUrl = usePathWithOrigin(getLoginPath(server));
   const loginTokenForHashRouter = getLoginTokenSearchParam();
   const absoluteLoginPath = usePathWithOrigin(getLoginPath(server));
@@ -72,9 +76,7 @@ export function Login() {
           <SSOLogin
             providers={parsedFlows.sso.identity_providers}
             redirectUrl={ssoRedirectUrl}
-            asIcons={
-              parsedFlows.password !== undefined && parsedFlows.sso.identity_providers.length > 2
-            }
+            saveScreenSpace={parsedFlows.password !== undefined}
           />
           <span data-spacing-node />
         </>
